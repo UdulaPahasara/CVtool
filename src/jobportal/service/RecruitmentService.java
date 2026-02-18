@@ -25,7 +25,7 @@ public class RecruitmentService {
 
         MaxHeap tempHeap = new MaxHeap();
 
-        for (Candidate c : heap.getAll())
+        for (Candidate c : heap.getAllCandidates())
             tempHeap.insert(c);
 
         while (tempHeap.size() > 0) {
@@ -35,7 +35,7 @@ public class RecruitmentService {
 
     public void recruitmentSummary() {
 
-        ArrayList<Candidate> list = heap.getAll();
+        ArrayList<Candidate> list = heap.getAllCandidates();
 
         if (list.isEmpty()) {
             System.out.println("No data available.");

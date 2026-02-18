@@ -1,54 +1,88 @@
 package jobportal.model;
 
 public class Candidate {
+
     private String id;
     private String name;
     private String skills;
     private int experience;
     private String education;
-    private int score;
+    private String jobRole;
 
-    public Candidate(String id, String name, String skills, int experience, String education) {
+    private int experienceScore;
+    private int educationScore;
+    private int skillScore;
+    private int totalScore;
+
+    public Candidate(String id, String name, String skills,
+                     int experience, String education) {
+
         this.id = id;
         this.name = name;
         this.skills = skills;
         this.experience = experience;
         this.education = education;
-        this.score = calculateScore();
+        this.jobRole = "N/A";
+
+        calculateScore();
     }
 
-    // Score Calculation Logic
-    private int calculateScore() {
-        int score = 0;
+    private void calculateScore() {
 
         // Experience weight
-        score = score + (experience * 10);
+        experienceScore = experience * 10;
 
         // Education weight
         if (education.equalsIgnoreCase("Masters")) {
-            score += 30;
-        }
-        else if (education.equalsIgnoreCase("Degree")) {
-            score += 20;
-        }
-        else
-            score += 10;
-
-        // Skills weight ()
-        if (skills.toLowerCase().contains("java")){
-            score += 25;
-        }
-        if (skills.toLowerCase().contains("sql")) {
-            score += 15;
+            educationScore = 30;
+        } else if (education.equalsIgnoreCase("Degree")) {
+            educationScore = 20;
+        } else {
+            educationScore = 10;
         }
 
-        return score;
+        // Skill weight
+        skillScore = 0;
+        if (skills.toLowerCase().contains("java"))
+            skillScore += 25;
+        if (skills.toLowerCase().contains("sql"))
+            skillScore += 15;
+
+        totalScore = experienceScore + educationScore + skillScore;
     }
 
-    public int getScore() { return score; }
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public String getSkills() { return skills; }
-    public int getExperience() { return experience; }
-    public String getEducation() { return education; }
+    public int getTotalScore() {
+        return totalScore;
+    }
+
+    public String getJobRole() {
+        return jobRole;
+    }
+
+    public int getExperience() {
+        return experience;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public String getSkills() {
+        return skills;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String toString() {
+        return "ID: " + id +
+                " | Name: " + name +
+                " | Job Role: " + jobRole +
+                " | Score: " + totalScore;
+    }
 }

@@ -16,7 +16,7 @@ public class MaxHeap {
         heap.add(candidate);
         int i = heap.size() - 1;
 
-        while (i != 0 && heap.get(parent(i)).getScore() < heap.get(i).getScore()) {
+        while (i != 0 && heap.get(parent(i)).getTotalScore() < heap.get(i).getTotalScore()) {
             swap(i, parent(i));
             i = parent(i);
         }
@@ -45,10 +45,10 @@ public class MaxHeap {
         int left = left(i);
         int right = right(i);
 
-        if (left < heap.size() && heap.get(left).getScore() > heap.get(largest).getScore())
+        if (left < heap.size() && heap.get(left).getTotalScore() > heap.get(largest).getTotalScore())
             largest = left;
 
-        if (right < heap.size() && heap.get(right).getScore() > heap.get(largest).getScore())
+        if (right < heap.size() && heap.get(right).getTotalScore() > heap.get(largest).getTotalScore())
             largest = right;
 
         if (largest != i) {
@@ -65,5 +65,9 @@ public class MaxHeap {
 
     public ArrayList<Candidate> getAllCandidates() {
         return heap;
+    }
+
+    public int size() {
+        return heap.size();
     }
 }
