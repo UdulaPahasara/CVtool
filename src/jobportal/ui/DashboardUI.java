@@ -189,17 +189,25 @@ public class DashboardUI extends JFrame {
         fieldsPanel.add(eduContainer);
 
         // Buttons
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
         buttonPanel.setOpaque(false);
 
         JButton addBtn = createStyledButton("Add Candidate", PRIMARY_COLOR);
         JButton topBtn = createStyledButton("Show Best Candidate", SECONDARY_COLOR);
+        JButton listBtn = createStyledButton("Show Ranked List", PRIMARY_COLOR);
+        JButton summaryBtn = createStyledButton("View Summary", SECONDARY_COLOR);
+
 
         addBtn.addActionListener(e -> addCandidate());
         topBtn.addActionListener(e -> showTop());
+        listBtn.addActionListener(e -> showRankedList());
+        summaryBtn.addActionListener(e -> showSummary());
+
 
         buttonPanel.add(addBtn);
         buttonPanel.add(topBtn);
+        buttonPanel.add(listBtn);
+        buttonPanel.add(summaryBtn);
 
         formPanel.add(fieldsPanel, BorderLayout.CENTER);
         formPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -209,6 +217,41 @@ public class DashboardUI extends JFrame {
         wrapper.setOpaque(false);
         wrapper.add(formPanel, BorderLayout.NORTH);
         return wrapper;
+    }
+
+    private void showRankedList() {
+        if (heap.size() == 0) {
+            outputArea.append("No candidates available.\n\n");
+            return;
+        }
+
+        outputArea.append(" RANKED CANDIDATES:\n");
+
+        for (Candidate c : heap.getAllCandidates()) {
+            outputArea.append(c.toString() + "\n");
+        }
+
+        outputArea.append("\n");
+    }
+
+    private void showSummary() {
+        if (heap.size() == 0) {
+            outputArea.append("No data for summary.\n\n");
+            return;
+        }
+
+        int total = heap.size();
+        int totalScore = 0;
+
+        for (Candidate c : heap.getAllCandidates()) {
+            totalScore += c.getTotalScore();
+        }
+
+        double avg = (double) totalScore / total;
+
+        outputArea.append(" RECRUITMENT SUMMARY:\n");
+        outputArea.append("Total Candidates: " + total + "\n");
+        outputArea.append("Average Score: " + avg + "\n\n");
     }
 
     private JPanel createLabeledField(String labelText, JTextField textField) {
