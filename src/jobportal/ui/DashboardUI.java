@@ -9,7 +9,8 @@ import java.awt.event.ActionEvent;
 
 public class DashboardUI extends JFrame {
 
-    private JTextField idField, nameField, roleField, skillsField, expField;
+    private JTextField idField, nameField, skillsField;
+    private JComboBox<String> roleBox, expBox;
     private JComboBox<String> eduBox;
     private JTextArea outputArea;
     private MaxHeap heap = new MaxHeap();
@@ -75,7 +76,30 @@ public class DashboardUI extends JFrame {
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         fieldsPanel.add(createLabeledField("Name:", nameField = new JTextField()));
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        fieldsPanel.add(createLabeledField("Job Role:", roleField = new JTextField()));
+        // Job Role Dropdown
+        JPanel roleContainer = new JPanel(new BorderLayout(5, 5));
+        roleContainer.setOpaque(false);
+
+        JLabel roleLabel = new JLabel("Job Role:");
+        roleLabel.setFont(LABEL_FONT);
+        roleLabel.setForeground(TEXT_COLOR);
+        roleContainer.add(roleLabel, BorderLayout.NORTH);
+
+        String[] roles = {
+                "Software Engineer",
+                "Backend Developer",
+                "Frontend Developer",
+                "Full Stack Developer",
+                "Data Analyst",
+                "QA Engineer"
+        };
+
+        roleBox = new JComboBox<>(roles);
+        roleBox.setFont(INPUT_FONT);
+        roleBox.setBackground(Color.WHITE);
+
+        roleContainer.add(roleBox, BorderLayout.CENTER);
+        fieldsPanel.add(roleContainer);
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
         // Skills Section
@@ -121,8 +145,32 @@ public class DashboardUI extends JFrame {
             }
         });
 
-        fieldsPanel.add(createLabeledField("Experience (Years):", expField = new JTextField()));
+        // Experience Dropdown
+        JPanel expContainer = new JPanel(new BorderLayout(5, 5));
+        expContainer.setOpaque(false);
+
+        JLabel expLabel = new JLabel("Experience:");
+        expLabel.setFont(LABEL_FONT);
+        expLabel.setForeground(TEXT_COLOR);
+        expContainer.add(expLabel, BorderLayout.NORTH);
+
+        String[] expOptions = {
+                "1-2 years",
+                "2-4 years",
+                "5-9 years",
+                "10+ years"
+        };
+
+        expBox = new JComboBox<>(expOptions);
+        expBox.setFont(INPUT_FONT);
+        expBox.setBackground(Color.WHITE);
+
+        expContainer.add(expBox, BorderLayout.CENTER);
+        fieldsPanel.add(expContainer);
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+
+
 
         // Education Section
         JPanel eduContainer = new JPanel(new BorderLayout(5, 5));
@@ -216,24 +264,26 @@ public class DashboardUI extends JFrame {
 
     private void addCandidate() {
         try {
+            int expScore = getExperienceScore((String) expBox.getSelectedItem());
+
             Candidate c = new Candidate(
                     idField.getText(),
                     nameField.getText(),
                     skillsField.getText(),
-                    Integer.parseInt(expField.getText()),
+                    expScore,
                     (String) eduBox.getSelectedItem(),
-                    roleField.getText());
+                    (String) roleBox.getSelectedItem()
+            );
 
             heap.insert(c);
-            outputArea.append("Inserted: " + c.getName() + "\n   Role: " + roleField.getText() +
-                    "\n   Skills: " + c.getSkills() + "\n   Score: " + c.getTotalScore() + "\n\n");
 
-            // Clear fields (optional)
-            // idField.setText(""); nameField.setText(""); ...
+            outputArea.append("Inserted: " + c.getName() +
+                    "\n   Role: " + c.getJobRole() +
+                    "\n   Skills: " + c.getSkills() +
+                    "\n   Score: " + c.getTotalScore() + "\n\n");
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Please enter valid details!", "Input Error",
-                    JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Invalid Input!");
         }
     }
 
@@ -247,4 +297,23 @@ public class DashboardUI extends JFrame {
             outputArea.append(" Heap is empty. No candidates.\n\n");
         }
     }
-}
+
+
+        // your fields...
+        //  PLACE IT HERE (inside class, outside other methods)
+        private int getExperienceScore(String exp) {
+            switch (exp) {
+                case "1-2 years":
+                    return 20;
+                case "2-4 years":
+                    return 30;
+                case "5-9 years":
+                    return 60;
+                case "10+ years":
+                    return 80;
+                default:
+                    return 0;
+            }
+        }
+    }
+
