@@ -10,11 +10,11 @@ import java.awt.event.ActionEvent;
 public class DashboardUI extends JFrame {
 
     private JTextField idField, nameField, skillsField;
-    private JComboBox<String> roleBox, expBox;
-    private JComboBox<String> eduBox;
-    private JTextArea outputArea;
+    private JComboBox<String> roleBox, expBox, eduBox;
+    private JPanel outputPanel;
     private MaxHeap heap = new MaxHeap();
-
+    private JTable table;
+    private JTextArea summaryArea;
     // Color Palette
     private final Color PRIMARY_COLOR = new Color(52, 152, 219); // Blue
     private final Color SECONDARY_COLOR = new Color(44, 62, 80); // Dark Blue
@@ -173,7 +173,6 @@ public class DashboardUI extends JFrame {
 
 
 
-
         // Education Section
         JPanel eduContainer = new JPanel(new BorderLayout(5, 5));
         eduContainer.setOpaque(false);
@@ -222,40 +221,79 @@ public class DashboardUI extends JFrame {
     }
 
     private void showRankedList() {
+        outputPanel.removeAll();
+
         if (heap.size() == 0) {
-            outputArea.append("No candidates available.\n\n");
-            return;
+            JLabel empty = new JLabel("No candidates available.");
+            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            outputPanel.add(empty, BorderLayout.CENTER);
+        } else {
+            String[] columns = {"Rank", "Name", "Role", "Skills", "Score"};
+            Object[][] data = new Object[heap.size()][5];
+
+            int i = 0;
+            for (Candidate c : heap.getAllCandidates()) {
+                data[i][0] = i + 1;
+                data[i][1] = c.getName();
+                data[i][2] = c.getJobRole();
+                data[i][3] = c.getSkills();
+                data[i][4] = c.getTotalScore();
+                i++;
+            }
+
+            JTable table = new JTable(data, columns);
+            table.setFillsViewportHeight(true);
+            table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            table.setRowHeight(25);
+            table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+            table.getTableHeader().setBackground(PRIMARY_COLOR);
+            table.getTableHeader().setForeground(Color.WHITE);
+
+            JScrollPane scrollPane = new JScrollPane(table);
+            outputPanel.add(scrollPane, BorderLayout.CENTER);
         }
 
-        outputArea.append(" RANKED CANDIDATES:\n");
-
-        for (Candidate c : heap.getAllCandidates()) {
-            outputArea.append(c.toString() + "\n");
-        }
-
-        outputArea.append("\n");
+        outputPanel.revalidate();
+        outputPanel.repaint();
     }
 
     private void showSummary() {
+        outputPanel.removeAll();
+
         if (heap.size() == 0) {
-            outputArea.append("No data for summary.\n\n");
-            return;
+            JLabel empty = new JLabel("No data for summary.");
+            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            outputPanel.add(empty, BorderLayout.CENTER);
+        } else {
+            int total = heap.size();
+            int totalScore = 0;
+
+            for (Candidate c : heap.getAllCandidates()) {
+                totalScore += c.getTotalScore();
+            }
+
+            double avg = (double) totalScore / total;
+
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+            JLabel header = new JLabel("📊 RECRUITMENT SUMMARY");
+            header.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            header.setForeground(PRIMARY_COLOR);
+            panel.add(header);
+            panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+            panel.add(createInfoLabel("Total Candidates: " + total));
+            panel.add(createInfoLabel("Average Score: " + avg));
+
+            outputPanel.add(panel, BorderLayout.CENTER);
         }
 
-        int total = heap.size();
-        int totalScore = 0;
-
-        for (Candidate c : heap.getAllCandidates()) {
-            totalScore += c.getTotalScore();
-        }
-
-        double avg = (double) totalScore / total;
-
-        outputArea.append(" RECRUITMENT SUMMARY:\n");
-        outputArea.append("Total Candidates: " + total + "\n");
-        outputArea.append("Average Score: " + avg + "\n\n");
+        outputPanel.revalidate();
+        outputPanel.repaint();
     }
-
     private JPanel createLabeledField(String labelText, JTextField textField) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setOpaque(false);
@@ -286,25 +324,25 @@ public class DashboardUI extends JFrame {
         return btn;
     }
 
-    private JPanel createOutputPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 10));
-        panel.setOpaque(false);
+    private JPanel createOutputPanel() { // CHANGE HERE
+        outputPanel = new JPanel(new BorderLayout(0, 10));
+        outputPanel.setOpaque(false);
 
         JLabel label = new JLabel("Results Log");
         label.setFont(LABEL_FONT);
         label.setForeground(TEXT_COLOR);
-        panel.add(label, BorderLayout.NORTH);
+        outputPanel.add(label, BorderLayout.NORTH);
 
-        outputArea = new JTextArea();
-        outputArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        outputArea.setEditable(false);
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        summaryArea = new JTextArea();
+        summaryArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        summaryArea.setEditable(false);
+        summaryArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JScrollPane scrollPane = new JScrollPane(outputArea);
+        JScrollPane scrollPane = new JScrollPane(summaryArea);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
-        panel.add(scrollPane, BorderLayout.CENTER);
-        return panel;
+        outputPanel.add(scrollPane, BorderLayout.CENTER);
+        return outputPanel;
     }
 
     private void addCandidate() {
@@ -322,10 +360,29 @@ public class DashboardUI extends JFrame {
 
             heap.insert(c);
 
-            outputArea.append("Inserted: " + c.getName() +
-                    "\n   Role: " + c.getJobRole() +
-                    "\n   Skills: " + c.getSkills() +
-                    "\n   Score: " + c.getTotalScore() + "\n\n");
+            // ---------------- MODERN VISUALIZATION ----------------
+            outputPanel.removeAll();
+
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+            JLabel header = new JLabel(" Candidate Added Successfully");
+            header.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            header.setForeground(PRIMARY_COLOR);
+            panel.add(header);
+            panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+            panel.add(createInfoLabel("Name: " + c.getName()));
+            panel.add(createInfoLabel("Role: " + c.getJobRole()));
+            panel.add(createInfoLabel("Skills: " + c.getSkills()));
+            panel.add(createInfoLabel("Score: " + c.getTotalScore()));
+
+            outputPanel.add(panel, BorderLayout.CENTER);
+            outputPanel.revalidate();
+            outputPanel.repaint();
+            // ---------------- END MODERN VISUALIZATION ----------------
 
             // Clear fields after adding
             idField.setText("");
@@ -341,14 +398,43 @@ public class DashboardUI extends JFrame {
     }
 
     private void showTop() {
+        outputPanel.removeAll();
+
         Candidate top = heap.getTop();
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
         if (top != null) {
-            outputArea.append(" TOP CANDIDATE:\n   Name: " + top.getName() +
-                    "\n   Role: " + top.getJobRole() + "\n   Skills: " + top.getSkills() +
-                    "\n   Score: " + top.getTotalScore() + "\n\n");
+            JLabel header = new JLabel("🏆 TOP CANDIDATE");
+            header.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            header.setForeground(PRIMARY_COLOR);
+            panel.add(header);
+            panel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+            panel.add(createInfoLabel("Name: " + top.getName()));
+            panel.add(createInfoLabel("Role: " + top.getJobRole()));
+            panel.add(createInfoLabel("Skills: " + top.getSkills()));
+            panel.add(createInfoLabel("Score: " + top.getTotalScore()));
         } else {
-            outputArea.append(" Heap is empty. No candidates.\n\n");
+            JLabel empty = new JLabel("No candidates available.");
+            empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            panel.add(empty);
         }
+
+        outputPanel.add(panel, BorderLayout.CENTER);
+        outputPanel.revalidate();
+        outputPanel.repaint();
+    }
+
+    // Helper method for styled info labels
+    private JLabel createInfoLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        label.setForeground(TEXT_COLOR);
+        label.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
+        return label;
     }
 
 
