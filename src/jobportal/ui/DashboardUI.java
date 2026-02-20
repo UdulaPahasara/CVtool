@@ -86,6 +86,7 @@ public class DashboardUI extends JFrame {
         roleContainer.add(roleLabel, BorderLayout.NORTH);
 
         String[] roles = {
+                "", // placeholder
                 "Software Engineer",
                 "Backend Developer",
                 "Frontend Developer",
@@ -113,7 +114,7 @@ public class DashboardUI extends JFrame {
         JPanel skillsInputPanel = new JPanel(new BorderLayout(5, 0));
         skillsInputPanel.setOpaque(false);
 
-        String[] skills = { "Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot",
+        String[] skills = { "","Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot",
                 "React" };
         JComboBox<String> skillsBox = new JComboBox<>(skills);
         skillsBox.setFont(INPUT_FONT);
@@ -155,6 +156,7 @@ public class DashboardUI extends JFrame {
         expContainer.add(expLabel, BorderLayout.NORTH);
 
         String[] expOptions = {
+                "", // placeholder
                 "1-2 years",
                 "2-4 years",
                 "5-9 years",
@@ -180,7 +182,7 @@ public class DashboardUI extends JFrame {
         eduLabel.setForeground(TEXT_COLOR);
         eduContainer.add(eduLabel, BorderLayout.NORTH);
 
-        String[] eduOptions = { "PhD", "Masters", "Degree", "High National Diploma", "Diploma", "High School" };
+        String[] eduOptions = { "","PhD", "Masters", "Degree", "High National Diploma", "Diploma", "High School" };
         eduBox = new JComboBox<>(eduOptions);
         eduBox.setFont(INPUT_FONT);
         eduBox.setBackground(Color.WHITE);
@@ -324,6 +326,14 @@ public class DashboardUI extends JFrame {
                     "\n   Role: " + c.getJobRole() +
                     "\n   Skills: " + c.getSkills() +
                     "\n   Score: " + c.getTotalScore() + "\n\n");
+
+            // Clear fields after adding
+            idField.setText("");
+            nameField.setText("");
+            skillsField.setText("");
+            expBox.setSelectedIndex(0);
+            eduBox.setSelectedIndex(0);
+            roleBox.setSelectedIndex(0);
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Invalid Input!");
