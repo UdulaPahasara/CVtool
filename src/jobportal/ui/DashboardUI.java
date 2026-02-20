@@ -9,7 +9,8 @@ import java.awt.event.ActionEvent;
 
 public class DashboardUI extends JFrame {
 
-    private JTextField idField, nameField, skillsField, expField, eduField;
+    private JTextField idField, nameField, roleField, skillsField, expField;
+    private JComboBox<String> eduBox;
     private JTextArea outputArea;
     private MaxHeap heap = new MaxHeap();
 
@@ -66,11 +67,16 @@ public class DashboardUI extends JFrame {
         JPanel formPanel = new JPanel(new BorderLayout(0, 15));
         formPanel.setOpaque(false);
 
-        JPanel fieldsPanel = new JPanel(new GridLayout(6, 1, 0, 10));
+        JPanel fieldsPanel = new JPanel();
+        fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
         fieldsPanel.setOpaque(false);
 
         fieldsPanel.add(createLabeledField("Candidate ID:", idField = new JTextField()));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         fieldsPanel.add(createLabeledField("Name:", nameField = new JTextField()));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        fieldsPanel.add(createLabeledField("Job Role:", roleField = new JTextField()));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
         // Skills Section
         JPanel skillsContainer = new JPanel(new BorderLayout(5, 5));
@@ -83,7 +89,8 @@ public class DashboardUI extends JFrame {
         JPanel skillsInputPanel = new JPanel(new BorderLayout(5, 0));
         skillsInputPanel.setOpaque(false);
 
-        String[] skills = { "Java", "SQL", "Python", "C++", "HTML/CSS", "JavaScript" };
+        String[] skills = { "Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot",
+                "React" };
         JComboBox<String> skillsBox = new JComboBox<>(skills);
         skillsBox.setFont(INPUT_FONT);
         skillsBox.setBackground(Color.WHITE);
@@ -101,6 +108,7 @@ public class DashboardUI extends JFrame {
         skillsContainer.add(skillsField, BorderLayout.SOUTH);
 
         fieldsPanel.add(skillsContainer);
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
         // Add Skill Action
         addSkillBtn.addActionListener(e -> {
@@ -114,7 +122,23 @@ public class DashboardUI extends JFrame {
         });
 
         fieldsPanel.add(createLabeledField("Experience (Years):", expField = new JTextField()));
-        fieldsPanel.add(createLabeledField("Education:", eduField = new JTextField()));
+        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Education Section
+        JPanel eduContainer = new JPanel(new BorderLayout(5, 5));
+        eduContainer.setOpaque(false);
+        JLabel eduLabel = new JLabel("Education:");
+        eduLabel.setFont(LABEL_FONT);
+        eduLabel.setForeground(TEXT_COLOR);
+        eduContainer.add(eduLabel, BorderLayout.NORTH);
+
+        String[] eduOptions = { "PhD", "Masters", "Degree", "High National Diploma", "Diploma", "High School" };
+        eduBox = new JComboBox<>(eduOptions);
+        eduBox.setFont(INPUT_FONT);
+        eduBox.setBackground(Color.WHITE);
+        eduContainer.add(eduBox, BorderLayout.CENTER);
+
+        fieldsPanel.add(eduContainer);
 
         // Buttons
         JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -197,10 +221,12 @@ public class DashboardUI extends JFrame {
                     nameField.getText(),
                     skillsField.getText(),
                     Integer.parseInt(expField.getText()),
-                    eduField.getText());
+                    (String) eduBox.getSelectedItem(),
+                    roleField.getText());
 
             heap.insert(c);
-            outputArea.append("✅ Inserted: " + c.getName() + "\n   Score: " + c.getTotalScore() + "\n\n");
+            outputArea.append("Inserted: " + c.getName() + "\n   Role: " + roleField.getText() +
+                    "\n   Skills: " + c.getSkills() + "\n   Score: " + c.getTotalScore() + "\n\n");
 
             // Clear fields (optional)
             // idField.setText(""); nameField.setText(""); ...
@@ -214,10 +240,11 @@ public class DashboardUI extends JFrame {
     private void showTop() {
         Candidate top = heap.getTop();
         if (top != null) {
-            outputArea.append("🏆 TOP CANDIDATE:\n   Name: " + top.getName() +
-                    "\n   Score: " + top.getTotalScore() + "\n   Role: " + top.getJobRole() + "\n\n");
+            outputArea.append(" TOP CANDIDATE:\n   Name: " + top.getName() +
+                    "\n   Role: " + top.getJobRole() + "\n   Skills: " + top.getSkills() +
+                    "\n   Score: " + top.getTotalScore() + "\n\n");
         } else {
-            outputArea.append("⚠️ Heap is empty. No candidates.\n\n");
+            outputArea.append(" Heap is empty. No candidates.\n\n");
         }
     }
 }
