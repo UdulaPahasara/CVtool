@@ -9,7 +9,6 @@ public class Candidate {
     private String education;
     private String jobRole;
 
-
     private int educationScore;
     private int skillScore;
     private int totalScore;
@@ -28,8 +27,6 @@ public class Candidate {
     }
 
     private void calculateScore() {
-
-
 
         // Education weight
         if (education.equalsIgnoreCase("PhD")) {
@@ -71,17 +68,6 @@ public class Candidate {
                 skillScore += 30;
             else if (skill.equals("react"))
                 skillScore += 30;
-        }
-
-        // Experience weight
-        if (experienceScore >= 1 && experienceScore < 3) {
-            experienceScore = 10;
-        } else if (experienceScore >= 3 && experienceScore < 5) {
-            experienceScore = 15;
-        } else if (experienceScore >= 5) {
-            experienceScore = 20;
-        } else {
-            experienceScore = 0;
         }
 
         totalScore = experienceScore + educationScore + skillScore;

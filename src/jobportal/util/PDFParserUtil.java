@@ -29,13 +29,9 @@ public class PDFParserUtil {
         if (education == null || education.isEmpty())
             education = "Unknown";
 
-<<<<<<< HEAD
-        return new Candidate(candidateId, name, skills, experienceStr, education, jobRole);
-=======
         int expScore = getExperienceScore(experienceStr);
 
         return new Candidate(candidateId, name, skills, expScore, education, jobRole);
->>>>>>> 45632c0 (make UI remove input field and instead upload PDF with PDFParserUtil class)
     }
 
     private static String extractText(String filePath) throws IOException {
@@ -59,8 +55,6 @@ public class PDFParserUtil {
         return "";
     }
 
-<<<<<<< HEAD
-=======
     private static int getExperienceScore(String exp) {
         exp = exp.toLowerCase();
         if (exp.contains("1-2 years"))
@@ -74,5 +68,4 @@ public class PDFParserUtil {
             return 80;
         return 0;
     }
->>>>>>> 45632c0 (make UI remove input field and instead upload PDF with PDFParserUtil class)
 }
