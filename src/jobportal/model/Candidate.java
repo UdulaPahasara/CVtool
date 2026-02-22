@@ -73,6 +73,17 @@ public class Candidate {
                 skillScore += 30;
         }
 
+        // Experience weight
+        if (experienceScore >= 1 && experienceScore < 3) {
+            experienceScore = 10;
+        } else if (experienceScore >= 3 && experienceScore < 5) {
+            experienceScore = 15;
+        } else if (experienceScore >= 5) {
+            experienceScore = 20;
+        } else {
+            experienceScore = 0;
+        }
+
         totalScore = experienceScore + educationScore + skillScore;
     }
 
