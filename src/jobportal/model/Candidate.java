@@ -5,22 +5,22 @@ public class Candidate {
     private String id;
     private String name;
     private String skills;
-    private String experience;
+    private int experienceScore;
     private String education;
     private String jobRole;
 
-    private int experienceScore;
+
     private int educationScore;
     private int skillScore;
     private int totalScore;
 
     public Candidate(String id, String name, String skills,
-                     String experience, String education, String jobRole) {
+                     int experienceScore, String education, String jobRole) {
 
         this.id = id;
         this.name = name;
         this.skills = skills;
-        this.experience = experience;
+        this.experienceScore = experienceScore;
         this.education = education;
         this.jobRole = jobRole;
 
@@ -29,19 +29,7 @@ public class Candidate {
 
     private void calculateScore() {
 
-        // Experience weight
-        String exp = experience.toLowerCase();
-        if (exp.contains("1-2 years"))
-            experienceScore = 20;
-        else if (exp.contains("2-4 years"))
-            experienceScore = 30;
-        else if (exp.contains("5-9 years"))
-            experienceScore = 60;
-        else if (exp.contains("10+ years") || exp.contains("10 years") || exp.contains("11 years")
-                || exp.contains("12 years"))
-            experienceScore = 80;
-        else
-            experienceScore = 0;
+
 
         // Education weight
         if (education.equalsIgnoreCase("PhD")) {
@@ -107,11 +95,7 @@ public class Candidate {
         return jobRole;
     }
 
-    public String getExperience() {
-        return experience;
-    }
-
-    public int getExperienceScore() {
+    public int getExperience() {
         return experienceScore;
     }
 
