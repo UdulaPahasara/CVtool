@@ -2,15 +2,15 @@ package jobportal.ui;
 
 import jobportal.heap.MaxHeap;
 import jobportal.model.Candidate;
+import jobportal.util.PDFParserUtil;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 
 public class DashboardUI extends JFrame {
 
-    private JTextField idField, nameField, skillsField;
-    private JComboBox<String> roleBox, expBox, eduBox;
+    private JTextField idField, cvField;
     private JPanel outputPanel;
     private MaxHeap heap = new MaxHeap();
     private JTable table;
@@ -74,120 +74,46 @@ public class DashboardUI extends JFrame {
 
         fieldsPanel.add(createLabeledField("Candidate ID:", idField = new JTextField()));
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        fieldsPanel.add(createLabeledField("Name:", nameField = new JTextField()));
-        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        // Job Role Dropdown
-        JPanel roleContainer = new JPanel(new BorderLayout(5, 5));
-        roleContainer.setOpaque(false);
 
-        JLabel roleLabel = new JLabel("Job Role:");
-        roleLabel.setFont(LABEL_FONT);
-        roleLabel.setForeground(TEXT_COLOR);
-        roleContainer.add(roleLabel, BorderLayout.NORTH);
+        // Upload CV Section
+        JPanel cvContainer = new JPanel(new BorderLayout(5, 5));
+        cvContainer.setOpaque(false);
 
-        String[] roles = {
-                "", // placeholder
-                "Software Engineer",
-                "Backend Developer",
-                "Frontend Developer",
-                "Full Stack Developer",
-                "Data Analyst",
-                "QA Engineer"
-        };
+        JLabel cvLabel = new JLabel("Upload CV (PDF):");
+        cvLabel.setFont(LABEL_FONT);
+        cvLabel.setForeground(TEXT_COLOR);
+        cvContainer.add(cvLabel, BorderLayout.NORTH);
 
-        roleBox = new JComboBox<>(roles);
-        roleBox.setFont(INPUT_FONT);
-        roleBox.setBackground(Color.WHITE);
+        JPanel cvInputPanel = new JPanel(new BorderLayout(5, 0));
+        cvInputPanel.setOpaque(false);
 
-        roleContainer.add(roleBox, BorderLayout.CENTER);
-        fieldsPanel.add(roleContainer);
-        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        cvField = new JTextField();
+        cvField.setFont(INPUT_FONT);
+        cvField.setEditable(false);
+        cvField.setBackground(Color.WHITE);
+        cvField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
-        // Skills Section
-        JPanel skillsContainer = new JPanel(new BorderLayout(5, 5));
-        skillsContainer.setOpaque(false);
-        JLabel skillsLabel = new JLabel("Skills:");
-        skillsLabel.setFont(LABEL_FONT);
-        skillsLabel.setForeground(TEXT_COLOR);
-        skillsContainer.add(skillsLabel, BorderLayout.NORTH);
-
-        JPanel skillsInputPanel = new JPanel(new BorderLayout(5, 0));
-        skillsInputPanel.setOpaque(false);
-
-        String[] skills = { "","Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot",
-                "React" };
-        JComboBox<String> skillsBox = new JComboBox<>(skills);
-        skillsBox.setFont(INPUT_FONT);
-        skillsBox.setBackground(Color.WHITE);
-
-        JButton addSkillBtn = createStyledButton("+", PRIMARY_COLOR);
-        addSkillBtn.setPreferredSize(new Dimension(45, 30));
-
-        skillsInputPanel.add(skillsBox, BorderLayout.CENTER);
-        skillsInputPanel.add(addSkillBtn, BorderLayout.EAST);
-
-        skillsContainer.add(skillsInputPanel, BorderLayout.CENTER);
-        skillsField = new JTextField();
-        skillsField.setFont(INPUT_FONT);
-        skillsField.setEditable(false); // Make it read-only manual entry
-        skillsContainer.add(skillsField, BorderLayout.SOUTH);
-
-        fieldsPanel.add(skillsContainer);
-        fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        // Add Skill Action
-        addSkillBtn.addActionListener(e -> {
-            String current = skillsField.getText();
-            String selected = (String) skillsBox.getSelectedItem();
-            if (current.isEmpty()) {
-                skillsField.setText(selected);
-            } else {
-                skillsField.setText(current + ", " + selected);
+        JButton browseBtn = createStyledButton("Browse...", PRIMARY_COLOR);
+        browseBtn.setPreferredSize(new Dimension(100, 30));
+        browseBtn.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("PDF Documents", "pdf");
+            chooser.setFileFilter(filter);
+            int returnVal = chooser.showOpenDialog(this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                cvField.setText(chooser.getSelectedFile().getAbsolutePath());
             }
         });
 
-        // Experience Dropdown
-        JPanel expContainer = new JPanel(new BorderLayout(5, 5));
-        expContainer.setOpaque(false);
+        cvInputPanel.add(cvField, BorderLayout.CENTER);
+        cvInputPanel.add(browseBtn, BorderLayout.EAST);
+        cvContainer.add(cvInputPanel, BorderLayout.CENTER);
 
-        JLabel expLabel = new JLabel("Experience:");
-        expLabel.setFont(LABEL_FONT);
-        expLabel.setForeground(TEXT_COLOR);
-        expContainer.add(expLabel, BorderLayout.NORTH);
-
-        String[] expOptions = {
-                "", // placeholder
-                "1-2 years",
-                "2-4 years",
-                "5-9 years",
-                "10+ years"
-        };
-
-        expBox = new JComboBox<>(expOptions);
-        expBox.setFont(INPUT_FONT);
-        expBox.setBackground(Color.WHITE);
-
-        expContainer.add(expBox, BorderLayout.CENTER);
-        fieldsPanel.add(expContainer);
+        fieldsPanel.add(cvContainer);
         fieldsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
-
-
-        // Education Section
-        JPanel eduContainer = new JPanel(new BorderLayout(5, 5));
-        eduContainer.setOpaque(false);
-        JLabel eduLabel = new JLabel("Education:");
-        eduLabel.setFont(LABEL_FONT);
-        eduLabel.setForeground(TEXT_COLOR);
-        eduContainer.add(eduLabel, BorderLayout.NORTH);
-
-        String[] eduOptions = { "","PhD", "Masters", "Degree", "High National Diploma", "Diploma", "High School" };
-        eduBox = new JComboBox<>(eduOptions);
-        eduBox.setFont(INPUT_FONT);
-        eduBox.setBackground(Color.WHITE);
-        eduContainer.add(eduBox, BorderLayout.CENTER);
-
-        fieldsPanel.add(eduContainer);
+        // Remove old manual input containers
 
         // Buttons
         JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 10, 10));
@@ -198,12 +124,10 @@ public class DashboardUI extends JFrame {
         JButton listBtn = createStyledButton("Show Ranked List", PRIMARY_COLOR);
         JButton summaryBtn = createStyledButton("View Summary", SECONDARY_COLOR);
 
-
         addBtn.addActionListener(e -> addCandidate());
         topBtn.addActionListener(e -> showTop());
         listBtn.addActionListener(e -> showRankedList());
         summaryBtn.addActionListener(e -> showSummary());
-
 
         buttonPanel.add(addBtn);
         buttonPanel.add(topBtn);
@@ -228,11 +152,17 @@ public class DashboardUI extends JFrame {
             empty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
             outputPanel.add(empty, BorderLayout.CENTER);
         } else {
-            String[] columns = {"Rank", "Name", "Role", "Skills", "Score"};
+            String[] columns = { "Rank", "Name", "Role", "Skills", "Score" };
             Object[][] data = new Object[heap.size()][5];
 
-            int i = 0;
+            MaxHeap tempHeap = new MaxHeap();
             for (Candidate c : heap.getAllCandidates()) {
+                tempHeap.insert(c);
+            }
+
+            int i = 0;
+            while (tempHeap.size() > 0) {
+                Candidate c = tempHeap.removeTop();
                 data[i][0] = i + 1;
                 data[i][1] = c.getName();
                 data[i][2] = c.getJobRole();
@@ -294,6 +224,7 @@ public class DashboardUI extends JFrame {
         outputPanel.revalidate();
         outputPanel.repaint();
     }
+
     private JPanel createLabeledField(String labelText, JTextField textField) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setOpaque(false);
@@ -347,16 +278,15 @@ public class DashboardUI extends JFrame {
 
     private void addCandidate() {
         try {
-            int expScore = getExperienceScore((String) expBox.getSelectedItem());
+            String cvPath = cvField.getText();
+            String cid = idField.getText();
 
-            Candidate c = new Candidate(
-                    idField.getText(),
-                    nameField.getText(),
-                    skillsField.getText(),
-                    expScore,
-                    (String) eduBox.getSelectedItem(),
-                    (String) roleBox.getSelectedItem()
-            );
+            if (cvPath == null || cvPath.isEmpty() || cid == null || cid.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please provide Candidate ID and upload a CV.");
+                return;
+            }
+
+            Candidate c = PDFParserUtil.extractCandidateInfo(cvPath, cid);
 
             heap.insert(c);
 
@@ -377,7 +307,9 @@ public class DashboardUI extends JFrame {
             panel.add(createInfoLabel("Name: " + c.getName()));
             panel.add(createInfoLabel("Role: " + c.getJobRole()));
             panel.add(createInfoLabel("Skills: " + c.getSkills()));
-            panel.add(createInfoLabel("Score: " + c.getTotalScore()));
+            panel.add(createInfoLabel("Experience (Parsed): " + c.getExperience()));
+            panel.add(createInfoLabel("Education: " + c.getEducation()));
+            panel.add(createInfoLabel("Total Score: " + c.getTotalScore()));
 
             outputPanel.add(panel, BorderLayout.CENTER);
             outputPanel.revalidate();
@@ -386,14 +318,12 @@ public class DashboardUI extends JFrame {
 
             // Clear fields after adding
             idField.setText("");
-            nameField.setText("");
-            skillsField.setText("");
-            expBox.setSelectedIndex(0);
-            eduBox.setSelectedIndex(0);
-            roleBox.setSelectedIndex(0);
+            if (cvField != null)
+                cvField.setText("");
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Invalid Input!");
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error parsing CV: " + ex.getMessage());
         }
     }
 
@@ -436,23 +366,4 @@ public class DashboardUI extends JFrame {
         label.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
         return label;
     }
-
-
-        // your fields...
-        //  PLACE IT HERE (inside class, outside other methods)
-        private int getExperienceScore(String exp) {
-            switch (exp) {
-                case "1-2 years":
-                    return 20;
-                case "2-4 years":
-                    return 30;
-                case "5-9 years":
-                    return 60;
-                case "10+ years":
-                    return 80;
-                default:
-                    return 0;
-            }
-        }
-    }
-
+}

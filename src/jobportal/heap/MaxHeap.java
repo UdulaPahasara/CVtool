@@ -3,7 +3,7 @@ package jobportal.heap;
 import jobportal.model.Candidate;
 import java.util.ArrayList;
 
-public class MaxHeap {
+public class MaxHeap implements Heap {
 
     private ArrayList<Candidate> heap = new ArrayList<>();
 
