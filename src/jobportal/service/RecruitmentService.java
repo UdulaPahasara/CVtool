@@ -50,7 +50,7 @@ public class RecruitmentService {
 
         for (Candidate c : list) {
 
-            totalExp += c.getExperience();
+            totalExp += c.getExperienceScore();
 
             if (c.getEducation().equalsIgnoreCase("Masters"))
                 masters++;
