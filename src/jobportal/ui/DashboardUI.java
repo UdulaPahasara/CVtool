@@ -209,7 +209,7 @@ public class DashboardUI extends JFrame {
             panel.setBackground(Color.WHITE);
             panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-            JLabel header = new JLabel("📊 RECRUITMENT SUMMARY");
+            JLabel header = new JLabel(" RECRUITMENT SUMMARY");
             header.setFont(new Font("Segoe UI", Font.BOLD, 18));
             header.setForeground(PRIMARY_COLOR);
             panel.add(header);
@@ -337,7 +337,7 @@ public class DashboardUI extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         if (top != null) {
-            JLabel header = new JLabel("🏆 TOP CANDIDATE");
+            JLabel header = new JLabel("TOP CANDIDATE");
             header.setFont(new Font("Segoe UI", Font.BOLD, 18));
             header.setForeground(PRIMARY_COLOR);
             panel.add(header);
