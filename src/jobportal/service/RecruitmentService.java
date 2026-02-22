@@ -2,8 +2,10 @@ package jobportal.service;
 
 import jobportal.heap.MaxHeap;
 import jobportal.model.Candidate;
+import jobportal.model.RecruitmentSummary;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class RecruitmentService {
 
@@ -13,64 +15,86 @@ public class RecruitmentService {
         heap.insert(c);
     }
 
-    public void showTopCandidate() {
-        Candidate top = heap.getTop();
-        if (top == null)
-            System.out.println("No candidates available.");
-        else
-            System.out.println("Top Candidate: " + top);
+    public Candidate viewTopCandidate() {
+        return heap.getTop();
     }
 
-    public void showAllRanked() {
+    public Candidate hireTopCandidate() {
+        return heap.removeTop();
+    }
 
-        MaxHeap tempHeap = new MaxHeap();
+    public List<Candidate> getRankedList() {
+        List<Candidate> ranked = new ArrayList<>();
+        MaxHeap temp = new MaxHeap();
 
-        for (Candidate c : heap.getAllCandidates())
-            tempHeap.insert(c);
-
-        while (tempHeap.size() > 0) {
-            System.out.println(tempHeap.removeTop());
+        for (Candidate c : heap.getAllCandidates()) {
+            temp.insert(c);
         }
+
+        while (temp.size() > 0) {
+            ranked.add(temp.removeTop());
+        }
+
+        return ranked;
     }
 
-    public void recruitmentSummary() {
+    public Candidate searchById(String id) {
+        if (id == null) return null;
+        String target = id.trim();
+
+        for (Candidate c : heap.getAllCandidates()) {
+            if (c.getId().equalsIgnoreCase(target)) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    public List<Candidate> filterBySkill(String skill) {
+        List<Candidate> results = new ArrayList<>();
+        if (skill == null || skill.trim().isEmpty()) return results;
+
+        String s = skill.trim().toLowerCase();
+
+        for (Candidate c : heap.getAllCandidates()) {
+            if (c.getSkills().toLowerCase().contains(s)) {
+                results.add(c);
+            }
+        }
+        return results;
+    }
+
+    //  Summary upgrade
+    public RecruitmentSummary getSummary() {
+        RecruitmentSummary summary = new RecruitmentSummary();
 
         ArrayList<Candidate> list = heap.getAllCandidates();
+        summary.totalCandidates = list.size();
 
-        if (list.isEmpty()) {
-            System.out.println("No data available.");
-            return;
-        }
+        if (list.isEmpty()) return summary;
 
-        int total = list.size();
-        int totalExp = 0;
-        int masters = 0, degree = 0, others = 0;
-        int highest = Integer.MIN_VALUE;
-        int lowest = Integer.MAX_VALUE;
+        int totalScore = 0;
+
+        summary.highestCandidate = list.get(0);
+        summary.lowestCandidate = list.get(0);
 
         for (Candidate c : list) {
+            totalScore += c.getTotalScore();
 
-            totalExp += c.getExperienceScore();
+            if (c.getTotalScore() > summary.highestCandidate.getTotalScore()) summary.highestCandidate = c;
+            if (c.getTotalScore() < summary.lowestCandidate.getTotalScore()) summary.lowestCandidate = c;
 
-            if (c.getEducation().equalsIgnoreCase("Masters"))
-                masters++;
-            else if (c.getEducation().equalsIgnoreCase("Degree"))
-                degree++;
-            else
-                others++;
-
-            highest = Math.max(highest, c.getTotalScore());
-            lowest = Math.min(lowest, c.getTotalScore());
+            if (c.getEducation().equalsIgnoreCase("PhD")) summary.phdCount++;
+            else if (c.getEducation().equalsIgnoreCase("Masters")) summary.mastersCount++;
+            else if (c.getEducation().equalsIgnoreCase("Degree")) summary.degreeCount++;
+            else summary.othersCount++;
         }
 
-        System.out.println("----- Recruitment Summary -----");
-        System.out.println("Total Candidates: " + total);
-        System.out.println("Average Experience: " + (totalExp / (double) total));
-        System.out.println("Highest Score: " + highest);
-        System.out.println("Lowest Score: " + lowest);
-        System.out.println("Masters: " + masters);
-        System.out.println("Degree: " + degree);
-        System.out.println("Others: " + others);
-        System.out.println("--------------------------------");
+        summary.averageScore = totalScore / (double) summary.totalCandidates;
+        return summary;
+    }
+
+    public int size() {
+        return heap.size();
     }
 }
