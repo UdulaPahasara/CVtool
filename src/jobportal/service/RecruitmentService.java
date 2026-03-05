@@ -39,7 +39,8 @@ public class RecruitmentService {
     }
 
     public Candidate searchById(String id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         String target = id.trim();
 
         for (Candidate c : heap.getAllCandidates()) {
@@ -52,7 +53,8 @@ public class RecruitmentService {
 
     public List<Candidate> filterBySkill(String skill) {
         List<Candidate> results = new ArrayList<>();
-        if (skill == null || skill.trim().isEmpty()) return results;
+        if (skill == null || skill.trim().isEmpty())
+            return results;
 
         String s = skill.trim().toLowerCase();
 
@@ -64,32 +66,57 @@ public class RecruitmentService {
         return results;
     }
 
-    // ✅ Delete by ID (new)
+
     public Candidate deleteById(String id) {
         return heap.removeById(id);
     }
 
-    // ✅ Suggest Next Candidate ID (new)
+
     // Gives IDs like C001, C002, ...
     public String suggestNextId() {
         int max = 0;
 
         for (Candidate c : heap.getAllCandidates()) {
             String id = c.getId();
-            if (id == null) continue;
+            if (id == null)
+                continue;
 
             // Extract digits from any id format, e.g. C001, EMP-12, 7
             String digits = id.replaceAll("[^0-9]", "");
             if (!digits.isEmpty()) {
                 try {
                     int n = Integer.parseInt(digits);
-                    if (n > max) max = n;
-                } catch (Exception ignored) {}
+                    if (n > max)
+                        max = n;
+                } catch (Exception ignored) {
+                }
             }
         }
 
         int next = max + 1;
         return String.format("C%03d", next);
+    }
+
+    //  Suggest Next ID based on a given string
+    public String suggestNextId(String baseId) {
+        if (baseId == null || baseId.isEmpty())
+            return "C001";
+
+        String digits = baseId.replaceAll("[^0-9]", "");
+        String prefix = baseId.replaceAll("[0-9]", "");
+
+        if (digits.isEmpty()) {
+            return baseId + "1";
+        }
+
+        try {
+            int n = Integer.parseInt(digits) + 1;
+            // Try to maintain padding if the original had leading zeros and a fixed length
+            String formatPattern = "%0" + digits.length() + "d";
+            return prefix + String.format(formatPattern, n);
+        } catch (Exception e) {
+            return baseId + "1";
+        }
     }
 
     // Summary
@@ -99,7 +126,8 @@ public class RecruitmentService {
         ArrayList<Candidate> list = heap.getAllCandidates();
         summary.totalCandidates = list.size();
 
-        if (list.isEmpty()) return summary;
+        if (list.isEmpty())
+            return summary;
 
         int totalScore = 0;
 
@@ -109,13 +137,19 @@ public class RecruitmentService {
         for (Candidate c : list) {
             totalScore += c.getTotalScore();
 
-            if (c.getTotalScore() > summary.highestCandidate.getTotalScore()) summary.highestCandidate = c;
-            if (c.getTotalScore() < summary.lowestCandidate.getTotalScore()) summary.lowestCandidate = c;
+            if (c.getTotalScore() > summary.highestCandidate.getTotalScore())
+                summary.highestCandidate = c;
+            if (c.getTotalScore() < summary.lowestCandidate.getTotalScore())
+                summary.lowestCandidate = c;
 
-            if (c.getEducation().equalsIgnoreCase("PhD")) summary.phdCount++;
-            else if (c.getEducation().equalsIgnoreCase("Masters")) summary.mastersCount++;
-            else if (c.getEducation().equalsIgnoreCase("Degree")) summary.degreeCount++;
-            else summary.othersCount++;
+            if (c.getEducation().equalsIgnoreCase("PhD"))
+                summary.phdCount++;
+            else if (c.getEducation().equalsIgnoreCase("Masters"))
+                summary.mastersCount++;
+            else if (c.getEducation().equalsIgnoreCase("Degree"))
+                summary.degreeCount++;
+            else
+                summary.othersCount++;
         }
 
         summary.averageScore = totalScore / (double) summary.totalCandidates;
