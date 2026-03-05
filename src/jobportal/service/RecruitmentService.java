@@ -64,7 +64,35 @@ public class RecruitmentService {
         return results;
     }
 
-    //  Summary upgrade
+    // ✅ Delete by ID (new)
+    public Candidate deleteById(String id) {
+        return heap.removeById(id);
+    }
+
+    // ✅ Suggest Next Candidate ID (new)
+    // Gives IDs like C001, C002, ...
+    public String suggestNextId() {
+        int max = 0;
+
+        for (Candidate c : heap.getAllCandidates()) {
+            String id = c.getId();
+            if (id == null) continue;
+
+            // Extract digits from any id format, e.g. C001, EMP-12, 7
+            String digits = id.replaceAll("[^0-9]", "");
+            if (!digits.isEmpty()) {
+                try {
+                    int n = Integer.parseInt(digits);
+                    if (n > max) max = n;
+                } catch (Exception ignored) {}
+            }
+        }
+
+        int next = max + 1;
+        return String.format("C%03d", next);
+    }
+
+    // Summary
     public RecruitmentSummary getSummary() {
         RecruitmentSummary summary = new RecruitmentSummary();
 

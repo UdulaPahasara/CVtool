@@ -9,6 +9,8 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.io.File;
+import java.io.PrintWriter;
 import java.util.List;
 
 public class DashboardUI extends JFrame {
@@ -47,6 +49,11 @@ public class DashboardUI extends JFrame {
     private JTextArea hireArea;
 
     private JTextArea summaryArea;
+
+    // ✅ New: Preview/Confirm Add
+    private Candidate pendingCandidate;
+    private JTextArea previewArea;
+    private JButton confirmAddBtn;
 
     public DashboardUI() {
         setTitle("Job Portal Resume Ranking System");
@@ -133,6 +140,7 @@ public class DashboardUI extends JFrame {
             showCard(cardKey);
 
             // Refresh views when clicked
+            if (cardKey.equals("ADD")) resetAddCardDefaults();
             if (cardKey.equals("TOP")) refreshTop();
             if (cardKey.equals("RANKED")) refreshRanked();
             if (cardKey.equals("SUMMARY")) refreshSummary();
@@ -164,46 +172,111 @@ public class DashboardUI extends JFrame {
     }
 
     // ------------------------------------------------------------
-    // CARD 1: ADD CANDIDATE (PDF UPLOAD)  ✅ FIXED SMALL INPUT BOXES
+    // CARD 1: ADD CANDIDATE (Centered + Suggest ID + Preview + Confirm)
     // ------------------------------------------------------------
     private JPanel createAddCandidateCard() {
         JPanel card = createCardPanel();
+        card.add(createCardTitle("Add Candidate (PDF Upload)"), BorderLayout.NORTH);
 
-        JLabel title = createCardTitle("Add Candidate (PDF Upload)");
-        card.add(title, BorderLayout.NORTH);
+        // Wrapper centers the whole form in the card
+        JPanel centerWrapper = new JPanel(new GridBagLayout());
+        centerWrapper.setOpaque(false);
 
-        JPanel formWrapper = new JPanel();
-        formWrapper.setOpaque(false);
-        formWrapper.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0)); // ✅ prevents stretching
+        JPanel formGrid = new JPanel(new GridBagLayout());
+        formGrid.setOpaque(false);
 
-        JPanel form = new JPanel();
-        form.setOpaque(false);
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setPreferredSize(new Dimension(420, 260)); // ✅ controls form width
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
 
+        // Consistent sizes (DON'T change box sizes)
+        Dimension fieldSize = new Dimension(320, 34);
+        Dimension btnSize = new Dimension(160, 38);
+
+        // Row 0: Candidate ID label
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        formGrid.add(makeLabel("Candidate ID:"), gbc);
+
+        // Row 1: Candidate ID field + Suggest button
         addIdField = new JTextField();
-        form.add(createFieldBlock("Candidate ID:", addIdField));
+        addIdField.setText(service.suggestNextId());
+        setFieldSize(addIdField, fieldSize);
 
+        JButton btnSuggestId = createPrimaryButton("Suggest ID");
+        btnSuggestId.setPreferredSize(new Dimension(130, 34));
+        btnSuggestId.addActionListener(e -> addIdField.setText(service.suggestNextId()));
+
+        JPanel idRow = new JPanel(new BorderLayout(10, 0));
+        idRow.setOpaque(false);
+        idRow.add(addIdField, BorderLayout.CENTER);
+        idRow.add(btnSuggestId, BorderLayout.EAST);
+
+        gbc.gridy = 1;
+        formGrid.add(idRow, gbc);
+
+        // Row 2: Upload CV label
+        gbc.gridy = 2;
+        formGrid.add(makeLabel("Upload CV (PDF):"), gbc);
+
+        // Row 3: Upload field
         addCvField = new JTextField();
         addCvField.setEditable(false);
-        form.add(createFieldBlock("Upload CV (PDF):", addCvField));
+        setFieldSize(addCvField, fieldSize);
+        gbc.gridy = 3;
+        formGrid.add(addCvField, gbc);
 
-        JButton browse = createPrimaryButton("Browse PDF...");
-        browse.setAlignmentX(Component.LEFT_ALIGNMENT);
-        browse.addActionListener(e -> choosePdfFile());
-        form.add(browse);
+        // Row 4: Browse + Parse&Preview
+        JButton browseBtn = createPrimaryButton("Browse PDF...");
+        browseBtn.setPreferredSize(btnSize);
+        browseBtn.addActionListener(e -> choosePdfFile());
 
-        form.add(Box.createRigidArea(new Dimension(0, 10)));
+        JButton previewBtn = createPrimaryButton("Parse & Preview");
+        previewBtn.setPreferredSize(btnSize);
+        previewBtn.addActionListener(e -> parseAndPreview());
 
-        JButton addBtn = createPrimaryButton("Add Candidate");
-        addBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addBtn.addActionListener(e -> addCandidateFromPdf());
-        form.add(addBtn);
+        JPanel btnRow1 = new JPanel(new GridLayout(1, 2, 12, 0));
+        btnRow1.setOpaque(false);
+        btnRow1.add(browseBtn);
+        btnRow1.add(previewBtn);
 
-        formWrapper.add(form);
-        card.add(formWrapper, BorderLayout.CENTER);
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        formGrid.add(btnRow1, gbc);
 
+        // Row 5: Confirm Add (disabled until preview ok)
+        confirmAddBtn = createPrimaryButton("Confirm Add");
+        confirmAddBtn.setPreferredSize(new Dimension(330, 40));
+        confirmAddBtn.setEnabled(false);
+        confirmAddBtn.addActionListener(e -> confirmAddCandidate());
+
+        gbc.gridy = 5;
+        formGrid.add(confirmAddBtn, gbc);
+
+        // Row 6: Preview area
+        previewArea = new JTextArea(7, 30);
+        styleTextArea(previewArea);
+        previewArea.setText("Preview will appear here after parsing the PDF.");
+
+        JScrollPane previewScroll = new JScrollPane(previewArea);
+        previewScroll.setPreferredSize(new Dimension(460, 160));
+
+        gbc.gridy = 6;
+        formGrid.add(previewScroll, gbc);
+
+        // Center it
+        centerWrapper.add(formGrid, new GridBagConstraints());
+        card.add(centerWrapper, BorderLayout.CENTER);
         return card;
+    }
+
+    private void resetAddCardDefaults() {
+        if (addIdField != null && addIdField.getText().trim().isEmpty()) {
+            addIdField.setText(service.suggestNextId());
+        }
+        if (previewArea != null && (previewArea.getText() == null || previewArea.getText().trim().isEmpty())) {
+            previewArea.setText("Preview will appear here after parsing the PDF.");
+        }
     }
 
     private void choosePdfFile() {
@@ -215,7 +288,8 @@ public class DashboardUI extends JFrame {
         }
     }
 
-    private void addCandidateFromPdf() {
+    // ✅ Parse first and show preview
+    private void parseAndPreview() {
         try {
             String cid = addIdField.getText().trim();
             String path = addCvField.getText().trim();
@@ -225,25 +299,71 @@ public class DashboardUI extends JFrame {
                 return;
             }
 
-            // Prevent duplicate IDs
             if (service.searchById(cid) != null) {
                 JOptionPane.showMessageDialog(this, "Candidate ID already exists. Use a unique ID.");
                 return;
             }
 
-            Candidate c = PDFParserUtil.extractCandidateInfo(path, cid);
-            service.addCandidate(c);
+            pendingCandidate = PDFParserUtil.extractCandidateInfo(path, cid);
 
-            JOptionPane.showMessageDialog(this,
-                    "Candidate Added!\nName: " + c.getName() + "\nScore: " + c.getTotalScore());
+            previewArea.setText(
+                    "PREVIEW CANDIDATE\n\n" +
+                            "ID: " + pendingCandidate.getId() + "\n" +
+                            "Name: " + pendingCandidate.getName() + "\n" +
+                            "Role: " + pendingCandidate.getJobRole() + "\n" +
+                            "Education: " + pendingCandidate.getEducation() + "\n" +
+                            "Skills: " + pendingCandidate.getSkills() + "\n" +
+                            "Experience Score: " + pendingCandidate.getExperienceScore() + "\n" +
+                            "Total Score: " + pendingCandidate.getTotalScore()
+            );
 
-            addIdField.setText("");
-            addCvField.setText("");
+            confirmAddBtn.setEnabled(true);
 
         } catch (Exception ex) {
             ex.printStackTrace();
+            pendingCandidate = null;
+            confirmAddBtn.setEnabled(false);
+            previewArea.setText("Error parsing CV: " + ex.getMessage());
             JOptionPane.showMessageDialog(this, "Error parsing CV: " + ex.getMessage());
         }
+    }
+
+    // ✅ Add only after confirm
+    private void confirmAddCandidate() {
+        if (pendingCandidate == null) {
+            JOptionPane.showMessageDialog(this, "No candidate preview found. Please Parse & Preview first.");
+            return;
+        }
+
+        int ok = JOptionPane.showConfirmDialog(
+                this,
+                "Confirm adding candidate?\n\n" + pendingCandidate.toString(),
+                "Confirm Add",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (ok == JOptionPane.YES_OPTION) {
+            service.addCandidate(pendingCandidate);
+
+            JOptionPane.showMessageDialog(this,
+                    "Candidate Added!\nName: " + pendingCandidate.getName() +
+                            "\nScore: " + pendingCandidate.getTotalScore());
+
+            pendingCandidate = null;
+            confirmAddBtn.setEnabled(false);
+
+            addIdField.setText(service.suggestNextId());
+            addCvField.setText("");
+            previewArea.setText("Preview will appear here after parsing the PDF.");
+        }
+    }
+
+    // (Keep old method if you still call it anywhere; otherwise optional)
+    private void addCandidateFromPdf() {
+        // You can still keep this if another place calls it,
+        // but your Add Card now uses Parse & Preview + Confirm Add.
+        parseAndPreview();
+        // Do not auto-confirm here.
     }
 
     // CARD 2: TOP CANDIDATE
@@ -276,17 +396,31 @@ public class DashboardUI extends JFrame {
         );
     }
 
-    // CARD 3: RANKED LIST
+    // CARD 3: RANKED LIST + Export CSV
     private JPanel createRankedCard() {
         JPanel card = createCardPanel();
         card.add(createCardTitle("Ranked List (True Sorted)"), BorderLayout.NORTH);
+
+        JPanel content = new JPanel(new BorderLayout(10, 10));
+        content.setOpaque(false);
+
+        JButton exportBtn = createPrimaryButton("Export CSV");
+        exportBtn.addActionListener(e -> exportRankedCsv());
+
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        topBar.setOpaque(false);
+        topBar.add(exportBtn);
+
+        content.add(topBar, BorderLayout.NORTH);
 
         String[] cols = {"Rank", "ID", "Name", "Role", "Score"};
         rankedModel = new DefaultTableModel(cols, 0);
         rankedTable = new JTable(rankedModel);
         styleTable(rankedTable);
 
-        card.add(new JScrollPane(rankedTable), BorderLayout.CENTER);
+        content.add(new JScrollPane(rankedTable), BorderLayout.CENTER);
+
+        card.add(content, BorderLayout.CENTER);
         return card;
     }
 
@@ -311,7 +445,57 @@ public class DashboardUI extends JFrame {
         }
     }
 
-    // CARD 4: SEARCH
+    private void exportRankedCsv() {
+        List<Candidate> ranked = service.getRankedList();
+        if (ranked.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No candidates to export.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Save Ranked List as CSV");
+        chooser.setSelectedFile(new File("ranked_candidates.csv"));
+
+        int res = chooser.showSaveDialog(this);
+        if (res != JFileChooser.APPROVE_OPTION) return;
+
+        File file = chooser.getSelectedFile();
+
+        try (PrintWriter out = new PrintWriter(file, "UTF-8")) {
+            out.println("Rank,ID,Name,Role,Skills,Education,ExperienceScore,TotalScore");
+
+            int rank = 1;
+            for (Candidate c : ranked) {
+                out.println(
+                        rank++ + "," +
+                                csv(c.getId()) + "," +
+                                csv(c.getName()) + "," +
+                                csv(c.getJobRole()) + "," +
+                                csv(c.getSkills()) + "," +
+                                csv(c.getEducation()) + "," +
+                                c.getExperienceScore() + "," +
+                                c.getTotalScore()
+                );
+            }
+
+            JOptionPane.showMessageDialog(this, "Exported successfully:\n" + file.getAbsolutePath());
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Export failed: " + ex.getMessage());
+        }
+    }
+
+    private String csv(String s) {
+        if (s == null) return "";
+        String v = s.replace("\"", "\"\"");
+        if (v.contains(",") || v.contains("\n") || v.contains("\r")) {
+            return "\"" + v + "\"";
+        }
+        return v;
+    }
+
+    // CARD 4: SEARCH + Delete by ID
     private JPanel createSearchCard() {
         JPanel card = createCardPanel();
         card.add(createCardTitle("Search Candidate by ID"), BorderLayout.NORTH);
@@ -325,9 +509,18 @@ public class DashboardUI extends JFrame {
         searchIdField = new JTextField();
         top.add(createMiniField("Enter Candidate ID:", searchIdField), BorderLayout.CENTER);
 
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btns.setOpaque(false);
+
         JButton searchBtn = createPrimaryButton("Search");
         searchBtn.addActionListener(e -> doSearchById());
-        top.add(searchBtn, BorderLayout.EAST);
+        btns.add(searchBtn);
+
+        JButton deleteBtn = createPrimaryButton("Delete");
+        deleteBtn.addActionListener(e -> doDeleteById());
+        btns.add(deleteBtn);
+
+        top.add(btns, BorderLayout.EAST);
 
         searchResultArea = new JTextArea();
         styleTextArea(searchResultArea);
@@ -360,6 +553,38 @@ public class DashboardUI extends JFrame {
                             "Experience Score: " + c.getExperienceScore() + "\n" +
                             "Total Score: " + c.getTotalScore()
             );
+        }
+    }
+
+    private void doDeleteById() {
+        String id = searchIdField.getText().trim();
+        if (id.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter Candidate ID to delete.");
+            return;
+        }
+
+        Candidate c = service.searchById(id);
+        if (c == null) {
+            JOptionPane.showMessageDialog(this, "Candidate not found for ID: " + id);
+            return;
+        }
+
+        int ok = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to delete?\n\n" + c.toString(),
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (ok == JOptionPane.YES_OPTION) {
+            Candidate removed = service.deleteById(id);
+            if (removed != null) {
+                searchResultArea.setText("Deleted: " + removed.toString());
+                refreshRanked();
+                refreshSummary();
+            } else {
+                JOptionPane.showMessageDialog(this, "Delete failed.");
+            }
         }
     }
 
@@ -507,37 +732,6 @@ public class DashboardUI extends JFrame {
         return label;
     }
 
-    // ✅ SMALLER FIELD BLOCK (prevents stretching)
-    private JPanel createFieldBlock(String label, JTextField field) {
-        JPanel block = new JPanel();
-        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
-        block.setOpaque(false);
-        block.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel l = new JLabel(label);
-        l.setFont(LABEL_FONT);
-        l.setForeground(TEXT_COLOR);
-
-        field.setFont(LABEL_FONT);
-
-        // ✅ control width and height
-        field.setPreferredSize(new Dimension(250, 32));
-        field.setMaximumSize(new Dimension(350, 32));
-        field.setMinimumSize(new Dimension(200, 32));
-
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
-
-        block.add(l);
-        block.add(Box.createRigidArea(new Dimension(0, 5)));
-        block.add(field);
-        block.add(Box.createRigidArea(new Dimension(0, 15)));
-
-        return block;
-    }
-
     private JPanel createMiniField(String label, JComponent comp) {
         JPanel p = new JPanel(new BorderLayout(5, 5));
         p.setOpaque(false);
@@ -580,5 +774,25 @@ public class DashboardUI extends JFrame {
         table.getTableHeader().setBackground(PRIMARY_COLOR);
         table.getTableHeader().setForeground(Color.WHITE);
         table.setFillsViewportHeight(true);
+    }
+
+    // Helper label for consistent style
+    private JLabel makeLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(LABEL_FONT);
+        l.setForeground(TEXT_COLOR);
+        return l;
+    }
+
+    // Keep field sizes consistent (DON'T change sizes)
+    private void setFieldSize(JTextField field, Dimension size) {
+        field.setPreferredSize(size);
+        field.setMinimumSize(size);
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, size.height));
+        field.setFont(LABEL_FONT);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
     }
 }
