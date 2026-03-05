@@ -9,8 +9,13 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetAdapter;
+import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DashboardUI extends JFrame {
@@ -33,7 +38,9 @@ public class DashboardUI extends JFrame {
     private JPanel rightCards;
 
     // Common components
-    private JTextField addIdField, addCvField;
+    private JTextField addIdField;
+    private JTextArea addCvArea;
+    private List<File> selectedFiles = new ArrayList<>();
 
     private JTable rankedTable;
     private DefaultTableModel rankedModel;
@@ -50,14 +57,14 @@ public class DashboardUI extends JFrame {
 
     private JTextArea summaryArea;
 
-    // ✅ New: Preview/Confirm Add
-    private Candidate pendingCandidate;
+    // Preview/Confirm Add
+    private List<Candidate> pendingCandidates = new ArrayList<>();
     private JTextArea previewArea;
     private JButton confirmAddBtn;
 
     public DashboardUI() {
         setTitle("Job Portal Resume Ranking System");
-        setSize(1000, 650);
+        setSize(1000, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
@@ -140,10 +147,14 @@ public class DashboardUI extends JFrame {
             showCard(cardKey);
 
             // Refresh views when clicked
-            if (cardKey.equals("ADD")) resetAddCardDefaults();
-            if (cardKey.equals("TOP")) refreshTop();
-            if (cardKey.equals("RANKED")) refreshRanked();
-            if (cardKey.equals("SUMMARY")) refreshSummary();
+            if (cardKey.equals("ADD"))
+                resetAddCardDefaults();
+            if (cardKey.equals("TOP"))
+                refreshTop();
+            if (cardKey.equals("RANKED"))
+                refreshRanked();
+            if (cardKey.equals("SUMMARY"))
+                refreshSummary();
         });
 
         return btn;
@@ -192,10 +203,11 @@ public class DashboardUI extends JFrame {
 
         // Consistent sizes (DON'T change box sizes)
         Dimension fieldSize = new Dimension(320, 34);
-        Dimension btnSize = new Dimension(160, 38);
 
         // Row 0: Candidate ID label
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
         formGrid.add(makeLabel("Candidate ID:"), gbc);
 
         // Row 1: Candidate ID field + Suggest button
@@ -217,34 +229,72 @@ public class DashboardUI extends JFrame {
 
         // Row 2: Upload CV label
         gbc.gridy = 2;
-        formGrid.add(makeLabel("Upload CV (PDF):"), gbc);
+        formGrid.add(makeLabel("Upload CV (Select Multiple or Drag & Drop):"), gbc);
 
-        // Row 3: Upload field
-        addCvField = new JTextField();
-        addCvField.setEditable(false);
-        setFieldSize(addCvField, fieldSize);
+        // Row 3: Upload field (changed to JTextArea for multiple files)
+        addCvArea = new JTextArea(3, 30);
+        addCvArea.setEditable(false);
+        addCvArea.setLineWrap(true);
+        addCvArea.setWrapStyleWord(true);
+        addCvArea.setText("No files selected.");
+        addCvArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+
+        // Add Drag and Drop support to the area
+        addCvArea.setDropTarget(new DropTarget(addCvArea, new DropTargetAdapter() {
+            @Override
+            public void drop(DropTargetDropEvent dtde) {
+                try {
+                    dtde.acceptDrop(DnDConstants.ACTION_COPY);
+                    @SuppressWarnings("unchecked")
+                    List<File> droppedFiles = (List<File>) dtde.getTransferable()
+                            .getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+                    for (File file : droppedFiles) {
+                        if (file.getName().toLowerCase().endsWith(".pdf") && !selectedFiles.contains(file)) {
+                            selectedFiles.add(file);
+                        }
+                    }
+                    updateSelectedFilesDisplay();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }));
+
+        JScrollPane cvAreaScroll = new JScrollPane(addCvArea);
+        cvAreaScroll.setPreferredSize(new Dimension(320, 160));
+        cvAreaScroll.setMinimumSize(new Dimension(320, 160));
         gbc.gridy = 3;
-        formGrid.add(addCvField, gbc);
+        formGrid.add(cvAreaScroll, gbc);
 
         // Row 4: Browse + Parse&Preview
-        JButton browseBtn = createPrimaryButton("Browse PDF...");
-        browseBtn.setPreferredSize(btnSize);
+        JButton browseBtn = createPrimaryButton("Browse...");
         browseBtn.addActionListener(e -> choosePdfFile());
 
-        JButton previewBtn = createPrimaryButton("Parse & Preview");
-        previewBtn.setPreferredSize(btnSize);
+        JButton clearBtn = createPrimaryButton("Clear");
+        clearBtn.addActionListener(e -> {
+            selectedFiles.clear();
+            updateSelectedFilesDisplay();
+            pendingCandidates.clear();
+            previewArea.setText("Preview will appear here after parsing the PDFs.");
+            confirmAddBtn.setEnabled(false);
+        });
+
+        JButton previewBtn = createPrimaryButton("Parse...");
         previewBtn.addActionListener(e -> parseAndPreview());
 
-        JPanel btnRow1 = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel btnRow1 = new JPanel(new GridLayout(1, 3, 10, 0));
         btnRow1.setOpaque(false);
         btnRow1.add(browseBtn);
+        btnRow1.add(clearBtn);
         btnRow1.add(previewBtn);
 
         gbc.gridy = 4;
         gbc.gridwidth = 2;
         formGrid.add(btnRow1, gbc);
 
-        // Row 5: Confirm Add (disabled until preview ok)
+        // Row 5: Confirm Add (enabled when files are selected)
         confirmAddBtn = createPrimaryButton("Confirm Add");
         confirmAddBtn.setPreferredSize(new Dimension(330, 40));
         confirmAddBtn.setEnabled(false);
@@ -254,19 +304,27 @@ public class DashboardUI extends JFrame {
         formGrid.add(confirmAddBtn, gbc);
 
         // Row 6: Preview area
-        previewArea = new JTextArea(7, 30);
+        previewArea = new JTextArea(10, 30);
         styleTextArea(previewArea);
-        previewArea.setText("Preview will appear here after parsing the PDF.");
+        previewArea.setText("Preview will appear here after parsing the PDFs.");
 
         JScrollPane previewScroll = new JScrollPane(previewArea);
-        previewScroll.setPreferredSize(new Dimension(460, 160));
+        previewScroll.setPreferredSize(new Dimension(460, 220));
+        previewScroll.setMinimumSize(new Dimension(460, 220));
 
         gbc.gridy = 6;
         formGrid.add(previewScroll, gbc);
 
         // Center it
         centerWrapper.add(formGrid, new GridBagConstraints());
-        card.add(centerWrapper, BorderLayout.CENTER);
+
+        JScrollPane mainScroll = new JScrollPane(centerWrapper);
+        mainScroll.setBorder(BorderFactory.createEmptyBorder());
+        mainScroll.setOpaque(false);
+        mainScroll.getViewport().setOpaque(false);
+        mainScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        card.add(mainScroll, BorderLayout.CENTER);
         return card;
     }
 
@@ -275,86 +333,147 @@ public class DashboardUI extends JFrame {
             addIdField.setText(service.suggestNextId());
         }
         if (previewArea != null && (previewArea.getText() == null || previewArea.getText().trim().isEmpty())) {
-            previewArea.setText("Preview will appear here after parsing the PDF.");
+            previewArea.setText("Preview will appear here after parsing the PDFs.");
+        }
+        if (addCvArea != null) {
+            selectedFiles.clear();
+            updateSelectedFilesDisplay();
+        }
+        pendingCandidates.clear();
+        if (confirmAddBtn != null) {
+            confirmAddBtn.setEnabled(false);
         }
     }
 
     private void choosePdfFile() {
         JFileChooser chooser = new JFileChooser();
+        chooser.setMultiSelectionEnabled(true);
         chooser.setFileFilter(new FileNameExtensionFilter("PDF Documents", "pdf"));
         int res = chooser.showOpenDialog(this);
         if (res == JFileChooser.APPROVE_OPTION) {
-            addCvField.setText(chooser.getSelectedFile().getAbsolutePath());
+            File[] files = chooser.getSelectedFiles();
+            for (File file : files) {
+                if (!selectedFiles.contains(file)) {
+                    selectedFiles.add(file);
+                }
+            }
+            updateSelectedFilesDisplay();
         }
     }
 
-    // ✅ Parse first and show preview
-    private void parseAndPreview() {
-        try {
-            String cid = addIdField.getText().trim();
-            String path = addCvField.getText().trim();
-
-            if (cid.isEmpty() || path.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter Candidate ID and select a PDF CV.");
-                return;
-            }
-
-            if (service.searchById(cid) != null) {
-                JOptionPane.showMessageDialog(this, "Candidate ID already exists. Use a unique ID.");
-                return;
-            }
-
-            pendingCandidate = PDFParserUtil.extractCandidateInfo(path, cid);
-
-            previewArea.setText(
-                    "PREVIEW CANDIDATE\n\n" +
-                            "ID: " + pendingCandidate.getId() + "\n" +
-                            "Name: " + pendingCandidate.getName() + "\n" +
-                            "Role: " + pendingCandidate.getJobRole() + "\n" +
-                            "Education: " + pendingCandidate.getEducation() + "\n" +
-                            "Skills: " + pendingCandidate.getSkills() + "\n" +
-                            "Experience Score: " + pendingCandidate.getExperienceScore() + "\n" +
-                            "Total Score: " + pendingCandidate.getTotalScore()
-            );
-
-            confirmAddBtn.setEnabled(true);
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            pendingCandidate = null;
+    private void updateSelectedFilesDisplay() {
+        if (selectedFiles.isEmpty()) {
+            addCvArea.setText("No files selected.");
             confirmAddBtn.setEnabled(false);
-            previewArea.setText("Error parsing CV: " + ex.getMessage());
-            JOptionPane.showMessageDialog(this, "Error parsing CV: " + ex.getMessage());
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(selectedFiles.size()).append(" file(s) selected:\n");
+            for (File file : selectedFiles) {
+                sb.append("- ").append(file.getName()).append("\n");
+            }
+            addCvArea.setText(sb.toString());
+            addCvArea.setCaretPosition(0);
+            confirmAddBtn.setEnabled(true);
         }
     }
 
-    // ✅ Add only after confirm
-    private void confirmAddCandidate() {
-        if (pendingCandidate == null) {
-            JOptionPane.showMessageDialog(this, "No candidate preview found. Please Parse & Preview first.");
+    private void parseAndPreview() {
+        pendingCandidates.clear();
+
+        if (selectedFiles.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select at least one PDF CV.");
             return;
+        }
+
+        String baseCid = addIdField.getText().trim();
+        if (baseCid.isEmpty()) {
+            baseCid = service.suggestNextId();
+            addIdField.setText(baseCid);
+        }
+
+        StringBuilder previewText = new StringBuilder();
+        int successCount = 0;
+        int errorCount = 0;
+
+        StringBuilder currentId = new StringBuilder(baseCid);
+
+        for (File file : selectedFiles) {
+            try {
+                // Check if ID exists, if so generate a new one automatically to avoid breaking
+                // batch upload
+                while (service.searchById(currentId.toString()) != null) {
+                    currentId = new StringBuilder(service.suggestNextId(currentId.toString()));
+                }
+
+                Candidate candidate = PDFParserUtil.extractCandidateInfo(file.getAbsolutePath(), currentId.toString());
+                pendingCandidates.add(candidate);
+
+                previewText.append("ID: ").append(candidate.getId())
+                        .append(" | Name: ").append(candidate.getName())
+                        .append(" | Role: ").append(candidate.getJobRole())
+                        .append(" | Score: ").append(candidate.getTotalScore())
+                        .append("\n");
+
+                successCount++;
+                currentId = new StringBuilder(service.suggestNextId(currentId.toString())); // Setup ID for next
+                                                                                            // candidate
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                previewText.append("Error parsing ").append(file.getName()).append(": ").append(ex.getMessage())
+                        .append("\n");
+                errorCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            previewArea.setText("SUCCESSFULLY PARSED: " + successCount + " (Errors: " + errorCount + ")\n\n"
+                    + previewText.toString());
+            confirmAddBtn.setEnabled(true);
+        } else {
+            previewArea.setText("Failed to parse any files.\n\n" + previewText.toString());
+            confirmAddBtn.setEnabled(false);
+        }
+    }
+
+    // Add only after confirm
+    private void confirmAddCandidate() {
+        if (pendingCandidates.isEmpty() && selectedFiles.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No candidates/files to add.");
+            return;
+        }
+
+        // If files are selected but not parsed yet, parse them now!
+        if (pendingCandidates.isEmpty() && !selectedFiles.isEmpty()) {
+            parseAndPreview();
+
+            // If parsing failed to produce any candidates, stop here
+            if (pendingCandidates.isEmpty()) {
+                return;
+            }
         }
 
         int ok = JOptionPane.showConfirmDialog(
                 this,
-                "Confirm adding candidate?\n\n" + pendingCandidate.toString(),
+                "Confirm adding " + pendingCandidates.size() + " candidate(s)?",
                 "Confirm Add",
-                JOptionPane.YES_NO_OPTION
-        );
+                JOptionPane.YES_NO_OPTION);
 
         if (ok == JOptionPane.YES_OPTION) {
-            service.addCandidate(pendingCandidate);
+            int added = 0;
+            for (Candidate c : pendingCandidates) {
+                service.addCandidate(c);
+                added++;
+            }
 
-            JOptionPane.showMessageDialog(this,
-                    "Candidate Added!\nName: " + pendingCandidate.getName() +
-                            "\nScore: " + pendingCandidate.getTotalScore());
+            JOptionPane.showMessageDialog(this, "Successfully added " + added + " candidate(s)!");
 
-            pendingCandidate = null;
+            pendingCandidates.clear();
+            selectedFiles.clear();
             confirmAddBtn.setEnabled(false);
 
             addIdField.setText(service.suggestNextId());
-            addCvField.setText("");
-            previewArea.setText("Preview will appear here after parsing the PDF.");
+            updateSelectedFilesDisplay();
+            previewArea.setText("Preview will appear here after parsing the PDFs.");
         }
     }
 
@@ -392,8 +511,7 @@ public class DashboardUI extends JFrame {
                         "Education: " + top.getEducation() + "\n" +
                         "Skills: " + top.getSkills() + "\n" +
                         "Experience Score: " + top.getExperienceScore() + "\n" +
-                        "Total Score: " + top.getTotalScore()
-        );
+                        "Total Score: " + top.getTotalScore());
     }
 
     // CARD 3: RANKED LIST + Export CSV
@@ -413,7 +531,7 @@ public class DashboardUI extends JFrame {
 
         content.add(topBar, BorderLayout.NORTH);
 
-        String[] cols = {"Rank", "ID", "Name", "Role", "Score"};
+        String[] cols = { "Rank", "ID", "Name", "Role", "Score" };
         rankedModel = new DefaultTableModel(cols, 0);
         rankedTable = new JTable(rankedModel);
         styleTable(rankedTable);
@@ -429,13 +547,13 @@ public class DashboardUI extends JFrame {
 
         List<Candidate> ranked = service.getRankedList();
         if (ranked.isEmpty()) {
-            rankedModel.addRow(new Object[]{"-", "-", "No candidates", "-", "-"});
+            rankedModel.addRow(new Object[] { "-", "-", "No candidates", "-", "-" });
             return;
         }
 
         int rank = 1;
         for (Candidate c : ranked) {
-            rankedModel.addRow(new Object[]{
+            rankedModel.addRow(new Object[] {
                     rank++,
                     c.getId(),
                     c.getName(),
@@ -457,7 +575,8 @@ public class DashboardUI extends JFrame {
         chooser.setSelectedFile(new File("ranked_candidates.csv"));
 
         int res = chooser.showSaveDialog(this);
-        if (res != JFileChooser.APPROVE_OPTION) return;
+        if (res != JFileChooser.APPROVE_OPTION)
+            return;
 
         File file = chooser.getSelectedFile();
 
@@ -474,8 +593,7 @@ public class DashboardUI extends JFrame {
                                 csv(c.getSkills()) + "," +
                                 csv(c.getEducation()) + "," +
                                 c.getExperienceScore() + "," +
-                                c.getTotalScore()
-                );
+                                c.getTotalScore());
             }
 
             JOptionPane.showMessageDialog(this, "Exported successfully:\n" + file.getAbsolutePath());
@@ -487,7 +605,8 @@ public class DashboardUI extends JFrame {
     }
 
     private String csv(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         String v = s.replace("\"", "\"\"");
         if (v.contains(",") || v.contains("\n") || v.contains("\r")) {
             return "\"" + v + "\"";
@@ -551,8 +670,7 @@ public class DashboardUI extends JFrame {
                             "Education: " + c.getEducation() + "\n" +
                             "Skills: " + c.getSkills() + "\n" +
                             "Experience Score: " + c.getExperienceScore() + "\n" +
-                            "Total Score: " + c.getTotalScore()
-            );
+                            "Total Score: " + c.getTotalScore());
         }
     }
 
@@ -573,8 +691,7 @@ public class DashboardUI extends JFrame {
                 this,
                 "Are you sure you want to delete?\n\n" + c.toString(),
                 "Confirm Delete",
-                JOptionPane.YES_NO_OPTION
-        );
+                JOptionPane.YES_NO_OPTION);
 
         if (ok == JOptionPane.YES_OPTION) {
             Candidate removed = service.deleteById(id);
@@ -599,7 +716,8 @@ public class DashboardUI extends JFrame {
         JPanel top = new JPanel(new BorderLayout(10, 10));
         top.setOpaque(false);
 
-        String[] skills = {"Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot", "React"};
+        String[] skills = { "Java", "Python", "SQL", "C#", "C", "C++", "JavaScript", "HTML/CSS", "Spring-Boot",
+                "React" };
         filterSkillBox = new JComboBox<>(skills);
 
         top.add(createMiniField("Select Skill:", filterSkillBox), BorderLayout.CENTER);
@@ -608,7 +726,7 @@ public class DashboardUI extends JFrame {
         filterBtn.addActionListener(e -> refreshFilter());
         top.add(filterBtn, BorderLayout.EAST);
 
-        String[] cols = {"ID", "Name", "Role", "Skills", "Score"};
+        String[] cols = { "ID", "Name", "Role", "Skills", "Score" };
         filterModel = new DefaultTableModel(cols, 0);
         filterTable = new JTable(filterModel);
         styleTable(filterTable);
@@ -627,12 +745,12 @@ public class DashboardUI extends JFrame {
         List<Candidate> list = service.filterBySkill(skill);
 
         if (list.isEmpty()) {
-            filterModel.addRow(new Object[]{"-", "No matches", "-", skill, "-"});
+            filterModel.addRow(new Object[] { "-", "No matches", "-", skill, "-" });
             return;
         }
 
         for (Candidate c : list) {
-            filterModel.addRow(new Object[]{
+            filterModel.addRow(new Object[] {
                     c.getId(),
                     c.getName(),
                     c.getJobRole(),
@@ -676,8 +794,7 @@ public class DashboardUI extends JFrame {
                         "Name: " + hired.getName() + "\n" +
                         "Role: " + hired.getJobRole() + "\n" +
                         "Total Score: " + hired.getTotalScore() + "\n\n" +
-                        "Remaining Candidates: " + service.size()
-        );
+                        "Remaining Candidates: " + service.size());
     }
 
     // CARD 7: SUMMARY
@@ -703,14 +820,15 @@ public class DashboardUI extends JFrame {
                 "RECRUITMENT SUMMARY\n\n" +
                         "Total Candidates: " + s.totalCandidates + "\n" +
                         "Average Score: " + String.format("%.2f", s.averageScore) + "\n\n" +
-                        "Highest Candidate: " + s.highestCandidate.getName() + " (Score: " + s.highestCandidate.getTotalScore() + ")\n" +
-                        "Lowest Candidate: " + s.lowestCandidate.getName() + " (Score: " + s.lowestCandidate.getTotalScore() + ")\n\n" +
+                        "Highest Candidate: " + s.highestCandidate.getName() + " (Score: "
+                        + s.highestCandidate.getTotalScore() + ")\n" +
+                        "Lowest Candidate: " + s.lowestCandidate.getName() + " (Score: "
+                        + s.lowestCandidate.getTotalScore() + ")\n\n" +
                         "Education Distribution:\n" +
                         "  PhD: " + s.phdCount + "\n" +
                         "  Masters: " + s.mastersCount + "\n" +
                         "  Degree: " + s.degreeCount + "\n" +
-                        "  Others: " + s.othersCount + "\n"
-        );
+                        "  Others: " + s.othersCount + "\n");
     }
 
     // ---------------- UI HELPERS ----------------
@@ -720,8 +838,7 @@ public class DashboardUI extends JFrame {
         p.setBackground(CARD_BG);
         p.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
         return p;
     }
 
@@ -792,7 +909,6 @@ public class DashboardUI extends JFrame {
         field.setFont(LABEL_FONT);
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)));
     }
 }
