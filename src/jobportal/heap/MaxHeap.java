@@ -40,6 +40,44 @@ public class MaxHeap implements Heap {
         return root;
     }
 
+    // ✅ Remove Candidate by ID (new)
+    public Candidate removeById(String id) {
+        if (id == null || id.trim().isEmpty()) return null;
+
+        int index = -1;
+        String target = id.trim();
+
+        for (int i = 0; i < heap.size(); i++) {
+            if (heap.get(i).getId().equalsIgnoreCase(target)) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1) return null;
+
+        Candidate removed = heap.get(index);
+
+        int lastIndex = heap.size() - 1;
+        if (index == lastIndex) {
+            heap.remove(lastIndex);
+            return removed;
+        }
+
+        heap.set(index, heap.get(lastIndex));
+        heap.remove(lastIndex);
+
+        // Fix heap: push down then bubble up if needed
+        heapify(index);
+
+        while (index != 0 && heap.get(parent(index)).getTotalScore() < heap.get(index).getTotalScore()) {
+            swap(index, parent(index));
+            index = parent(index);
+        }
+
+        return removed;
+    }
+
     private void heapify(int i) {
         int largest = i;
         int left = left(i);

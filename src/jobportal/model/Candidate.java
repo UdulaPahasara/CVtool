@@ -2,12 +2,12 @@ package jobportal.model;
 
 public class Candidate {
 
-    private String id;
-    private String name;
-    private String skills;
-    private int experienceScore;
-    private String education;
-    private String jobRole;
+    private final String id;
+    private final String name;
+    private final String skills;
+    private final int experienceScore;  // Already a SCORE (20/30/60/80)
+    private final String education;
+    private final String jobRole;
 
     private int educationScore;
     private int skillScore;
@@ -28,6 +28,7 @@ public class Candidate {
 
     private void calculateScore() {
 
+        // Experience weight
         // Education weight
         if (education.equalsIgnoreCase("PhD")) {
             educationScore = 40;
@@ -48,28 +49,20 @@ public class Candidate {
         String[] skillList = skills.toLowerCase().split(",\\s*");
         for (String s : skillList) {
             String skill = s.trim();
-            if (skill.equals("java"))
-                skillScore += 25;
-            else if (skill.equals("python"))
-                skillScore += 20;
-            else if (skill.equals("sql"))
-                skillScore += 15;
-            else if (skill.equals("c#"))
-                skillScore += 25;
-            else if (skill.equals("c"))
-                skillScore += 25;
-            else if (skill.equals("c++"))
-                skillScore += 25;
-            else if (skill.equals("javascript"))
-                skillScore += 25;
-            else if (skill.equals("html/css"))
-                skillScore += 15;
-            else if (skill.equals("spring-boot"))
-                skillScore += 30;
-            else if (skill.equals("react"))
-                skillScore += 30;
+
+            if (skill.equals("java")) skillScore += 25;
+            else if (skill.equals("python")) skillScore += 20;
+            else if (skill.equals("sql")) skillScore += 15;
+            else if (skill.equals("c#")) skillScore += 25;
+            else if (skill.equals("c")) skillScore += 25;
+            else if (skill.equals("c++")) skillScore += 25;
+            else if (skill.equals("javascript")) skillScore += 25;
+            else if (skill.equals("html/css")) skillScore += 15;
+            else if (skill.equals("spring-boot")) skillScore += 30;
+            else if (skill.equals("react")) skillScore += 30;
         }
 
+        // Total score = experience score + education score + skill score
         totalScore = experienceScore + educationScore + skillScore;
     }
 
@@ -81,7 +74,9 @@ public class Candidate {
         return jobRole;
     }
 
-    public int getExperience() {
+
+
+    public int getExperienceScore() {
         return experienceScore;
     }
 
@@ -97,9 +92,7 @@ public class Candidate {
         return name;
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
 
     public String toString() {
         return "ID: " + id +
